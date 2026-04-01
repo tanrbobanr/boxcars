@@ -362,13 +362,12 @@ fn test_compressed_quaternions() {
         })
         .collect();
 
-    // value cross referenced with bakkes
     assert_eq!(
         rotations[1],
         Quaternion {
-            x: -1.0000305,
-            y: 0.4998932,
-            z: -1.0000305,
+            x: -1.0,
+            y: 0.49990082,
+            z: -1.0,
             w: 0.0
         }
     )

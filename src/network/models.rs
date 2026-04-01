@@ -103,30 +103,20 @@ impl Quaternion {
     }
 
     #[inline]
-    fn compressed_f32(bits: &mut LittleEndianReader<'_>) -> f32 {
-        // algorithm from jjbott/RocketLeagueReplayParser.
-        // Note that this code is heavily adapted. I noticed that there were branches that should
-        // never execute. Specifically in jjbott implementation:
-        //
-        // ```
-        // br.ReadFixedCompressedFloat(1, 16);
-        // ```
-        //
-        // These values are hardcoded and this function is only used in one place. There's a branch
-        // that compares these two hard coded numbers. I've removed said branch from this
-        // implementation.
-        //
-        // Bakkes copied jjbott. Rattletrap is more in line here
-        let res = bits.peek_and_consume(16) as i32;
-        ((res + i32::from(i16::MIN)) as f32) * (i16::MAX as f32).recip()
+    fn snorm16(bits: &mut LittleEndianReader<'_>) -> f32 {
+        // 16-bit signed normalized integer. Similar to what `unpack` is
+        // doing, except with u16::MAX as the maximum value instead of
+        // (1 << 18) - 1 and not multiplying by 1/sqrt2
+        let res = bits.peek_and_consume(16) as f32;
+        ((res / (u16::MAX as f32)) - 0.5) * 2.0
     }
 
     pub fn decode_compressed(bits: &mut LittleEndianReader<'_>) -> Option<Self> {
         bits.refill_lookahead();
         if bits.lookahead_bits() >= 3 * 16 {
-            let x = Quaternion::compressed_f32(bits);
-            let y = Quaternion::compressed_f32(bits);
-            let z = Quaternion::compressed_f32(bits);
+            let x = Quaternion::snorm16(bits);
+            let y = Quaternion::snorm16(bits);
+            let z = Quaternion::snorm16(bits);
             Some(Quaternion { x, y, z, w: 0.0 })
         } else {
             None
